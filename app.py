@@ -291,17 +291,38 @@ def load_data():
 
 @st.cache_resource
 def load_models():
-    model_dirs = [
-        'house_price_models',
-        '/content/drive/MyDrive/house_price_models',
-    ]
+    # ── Ưu tiên 1: models.pkl gộp (cấu trúc mới) ──────────────
+    single_paths = ['models.pkl', 'house_price_models/models.pkl']
+    for p in single_paths:
+        if os.path.exists(p):
+            with open(p, 'rb') as f:
+                obj = pickle.load(f)
+            best_xgb = obj['best_xgb']
+            best_lgb = obj['best_lgb']
+            best_cat = obj.get('best_cat', obj.get('cat_m'))
+            feats    = obj['FEATURES']
+            # Convert df_stats dict → DataFrame giống cũ
+            raw = obj['df_stats']
+            dstats = pd.DataFrame(raw)
+            dstats.index.name = 'districtId'
+            dstats = dstats.rename(columns={
+                'median': 'dist_median',
+                'mean':   'dist_mean',
+                'std':    'dist_std',
+                'count':  'dist_count',
+            })
+            return best_xgb, best_lgb, best_cat, None, dstats, feats
+
+    # ── Ưu tiên 2: các file .pkl riêng lẻ (cấu trúc cũ) ───────
+    model_dirs = ['house_price_models', '/content/drive/MyDrive/house_price_models']
     for d in model_dirs:
         xgb_path = os.path.join(d, 'best_xgb.pkl')
         if os.path.exists(xgb_path):
             with open(os.path.join(d,'best_xgb.pkl'),'rb') as f: best_xgb = pickle.load(f)
             with open(os.path.join(d,'best_lgb.pkl'),'rb') as f: best_lgb = pickle.load(f)
             with open(os.path.join(d,'cat_m.pkl'),'rb') as f:    cat_m    = pickle.load(f)
-            with open(os.path.join(d,'meta_model.pkl'),'rb') as f: meta   = pickle.load(f)
+            meta_path = os.path.join(d,'meta_model.pkl')
+            meta = pickle.load(open(meta_path,'rb')) if os.path.exists(meta_path) else None
             with open(os.path.join(d,'dist_stats.pkl'),'rb') as f: dstats = pickle.load(f)
             with open(os.path.join(d,'features.json'),'r') as f:   feats  = json.load(f)
             return best_xgb, best_lgb, cat_m, meta, dstats, feats
@@ -365,11 +386,14 @@ def predict_price(area_m2, bedroom, toilet, district_name,
             if col not in sample.columns:
                 sample[col] = 0
 
-        p_xgb  = best_xgb.predict(sample[FEATURES])
-        p_lgb  = best_lgb.predict(sample[FEATURES])
-        p_cat  = cat_m.predict(sample[FEATURES])
-        meta_in = np.column_stack([p_xgb, p_lgb, p_cat])
-        price  = np.expm1(meta_model.predict(meta_in))[0]
+        p_xgb = best_xgb.predict(sample[FEATURES])
+        p_lgb = best_lgb.predict(sample[FEATURES])
+        p_cat = cat_m.predict(sample[FEATURES])
+        if meta_model is not None:
+            meta_in = np.column_stack([p_xgb, p_lgb, p_cat])
+            price = np.expm1(meta_model.predict(meta_in))[0]
+        else:
+            price = np.expm1(0.4*p_xgb + 0.4*p_lgb + 0.2*p_cat)[0]
         noise_std = d_std * 0.10
 
     diff_pct = (price - d_median) / d_median * 100
