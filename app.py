@@ -927,6 +927,6 @@ st.markdown("""
 <div style='text-align:center; color:#8b949e; font-size:0.8rem; padding:12px 0 24px;'>
     🏙️ <strong style='color:#58a6ff'>BDS TPHCM Price Intelligence</strong> &nbsp;·&nbsp;
     XGBoost + LightGBM + CatBoost Stacking &nbsp;·&nbsp;
-    Khoa Công nghệ Thông tin &nbsp;·&nbsp; 2025
+    
 </div>
 """, unsafe_allow_html=True)
