@@ -291,7 +291,7 @@ def load_data():
 
 @st.cache_resource
 def load_models():
-    # ── Ưu tiên 1: models.pkl gộp (cấu trúc mới) ──────────────
+    # ── Ưu tiên 1: models.pkl gộp ──────────────
     single_paths = ['models.pkl', 'house_price_models/models.pkl']
     for p in single_paths:
         if os.path.exists(p):
@@ -301,7 +301,7 @@ def load_models():
             best_lgb = obj['best_lgb']
             best_cat = obj.get('best_cat', obj.get('cat_m'))
             feats    = obj['FEATURES']
-            # Convert df_stats dict → DataFrame giống cũ
+            # Convert df_stats dict 
             raw = obj['df_stats']
             dstats = pd.DataFrame(raw)
             dstats.index.name = 'districtId'
@@ -313,7 +313,7 @@ def load_models():
             })
             return best_xgb, best_lgb, best_cat, None, dstats, feats
 
-    # ── Ưu tiên 2: các file .pkl riêng lẻ (cấu trúc cũ) ───────
+    # ── Ưu tiên 2: các file .pkl riêng lẻ ───────
     model_dirs = ['house_price_models', '/content/drive/MyDrive/house_price_models']
     for d in model_dirs:
         xgb_path = os.path.join(d, 'best_xgb.pkl')
